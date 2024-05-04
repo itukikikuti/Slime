@@ -1,6 +1,7 @@
 var Engine = Matter.Engine,
     Render = Matter.Render,
     Runner = Matter.Runner,
+    Events = Matter.Events,
     Composites = Matter.Composites,
     Common = Matter.Common,
     Constraint = Matter.Constraint,
@@ -27,10 +28,13 @@ Render.run(render);
 var runner = Runner.create();
 Runner.run(runner, engine);
 
-const body = Bodies.circle(300, 300, 5, { collisionFilter: { category: 0x0002, mask: 0x0001 } })
+const core = Bodies.circle(300, 300, 5, { collisionFilter: { category: 0x0002, mask: 0x0001 } })
 const bodies = [];
-const constraints = [];
-const div = 10;
+const arounds = [];
+const everyOther = [];
+const diagonal = [];
+const radial = [];
+const div = 20;
 
 for (let i = 0; i < div; i++) {
     const r = (Math.PI * 2) / div * i;
@@ -38,7 +42,7 @@ for (let i = 0; i < div; i++) {
 }
 
 for (let i = 0; i < div; i++) {
-    constraints.push(Constraint.create({
+    arounds.push(Constraint.create({
         bodyA: bodies[i],
         pointA: { x: 0, y: 0 },
         bodyB: bodies[(i + 1) % div],
@@ -46,32 +50,32 @@ for (let i = 0; i < div; i++) {
         stiffness: 0.05
     }));
 
-    constraints.push(Constraint.create({
+    everyOther.push(Constraint.create({
         bodyA: bodies[i],
         pointA: { x: 0, y: 0 },
         bodyB: bodies[(i + 2) % div],
         pointB: { x: 0, y: 0 },
         stiffness: 0.05
     }));
-    
-    constraints.push(Constraint.create({
+
+    diagonal.push(Constraint.create({
         bodyA: bodies[i],
         pointA: { x: 0, y: 0 },
         bodyB: bodies[(i + div / 2) % div],
         pointB: { x: 0, y: 0 },
         stiffness: 0.003
     }));
-    
-    constraints.push(Constraint.create({
+
+    radial.push(Constraint.create({
         bodyA: bodies[i],
         pointA: { x: 0, y: 0 },
-        bodyB: body,
+        bodyB: core,
         pointB: { x: 0, y: 0 },
         stiffness: 0.01
     }));
 }
 
-Composite.add(world, [body, ...bodies, ...constraints]);
+Composite.add(world, [core, ...bodies, ...arounds, ...everyOther, ...diagonal, ...radial]);
 
 Composite.add(world, [
     Bodies.rectangle(320, 0, 640, 50, { isStatic: true }),
@@ -79,6 +83,38 @@ Composite.add(world, [
     Bodies.rectangle(640, 240, 50, 480, { isStatic: true }),
     Bodies.rectangle(0, 240, 50, 480, { isStatic: true })
 ]);
+
+let time = 0;
+
+Events.on(engine, 'beforeUpdate', function (event) {
+
+    time += event.delta * 0.01;
+
+    for (let i = 0; i < div; i++) {
+        let r = (Math.PI * 2) / div * i;
+        const v = Math.cos(r) * (50 + time);
+        const h = Math.sin(r) * 50;
+        
+        r = (Math.PI * 2) / div * ((i + 1) % div);
+        const v2 = Math.cos(r) * (50 + time);
+        const h2 = Math.sin(r) * 50;
+        
+        r = (Math.PI * 2) / div * ((i + 2) % div);
+        const v3 = Math.cos(r) * (50 + time);
+        const h3 = Math.sin(r) * 50;
+
+        r = (Math.PI * 2) / div * ((i + div / 2) % div);
+        const v4 = Math.cos(r) * (50 + time);
+        const h4 = Math.sin(r) * 50;
+
+        arounds[i].length = Math.sqrt((v - v2) ** 2 + (h - h2) ** 2);
+        everyOther[i].length = Math.sqrt((v - v3) ** 2 + (h - h3) ** 2);
+        diagonal[i].length = Math.sqrt((v - v4) ** 2 + (h - h4) ** 2);
+        radial[i].length = Math.sqrt(v ** 2 + h ** 2);
+    }
+    // Body.setPosition(compound, { x: 600, y: py }, true);
+    // Body.rotate(compound, 1 * Math.PI * timeScale, null, true);
+});
 
 var mouse = Mouse.create(render.canvas),
     mouseConstraint = MouseConstraint.create(engine, {
