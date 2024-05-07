@@ -16,19 +16,9 @@ scene.add(camera);
 
 const world = new p2.World();
 
-const particleGeometry = new THREE.PlaneGeometry(0.05, 0.05);
-const particleMaterial = new THREE.MeshBasicMaterial({
-    color: 0xffffff,
-    transparent: true,
-    depthTest: false
-});
-
 const core = new p2.Body({ mass: 1, position: [0, 0] });
 core.addShape(new p2.Particle());
 world.addBody(core);
-
-const coreMesh = new THREE.Mesh(particleGeometry, particleMaterial);
-scene.add(coreMesh);
 
 const bodies = [];
 const arounds = [];
@@ -37,19 +27,21 @@ const diagonal = [];
 const radial = [];
 const div = 16;
 
-const particleMeshes = [];
-
 for (let i = 0; i < div; i++) {
     const r = (Math.PI * 2) / div * i;
-    const p = new p2.Body({ mass: 1, position: [Math.cos(r) * 0.3, Math.sin(r) * 0.3] });
+    const p = new p2.Body({ mass: 10.0 / div, position: [Math.cos(r) * 0.3, Math.sin(r) * 0.3] });
     p.addShape(new p2.Particle());
     bodies.push(p);
     world.addBody(p);
-
-    const particleMesh = new THREE.Mesh(particleGeometry, particleMaterial);
-    particleMeshes.push(particleMesh);
-    scene.add(particleMesh);
 }
+
+const shapeMaterial = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    transparent: true,
+    depthTest: false
+});
+let shapeMesh = new THREE.Mesh(new THREE.ShapeGeometry(new THREE.Shape()), shapeMaterial);
+scene.add(shapeMesh);
 
 for (let i = 0; i < div; i++) {
     let r = (Math.PI * 2) / div * i;
@@ -68,10 +60,12 @@ for (let i = 0; i < div; i++) {
     const v4 = Math.cos(r) * 0.3;
     const h4 = Math.sin(r) * 0.3;
 
+    const damping = 4;
+
     let spring = new p2.LinearSpring(
         bodies[i],
         bodies[(i + 1) % div],
-        { stiffness: 500, restLength: Math.sqrt((v - v2) ** 2 + (h - h2) ** 2), damping: 1 }
+        { stiffness: 5000.0 / div, restLength: Math.sqrt((v - v2) ** 2 + (h - h2) ** 2), damping: damping }
     );
     arounds.push(spring);
     world.addSpring(spring);
@@ -79,7 +73,7 @@ for (let i = 0; i < div; i++) {
     spring = new p2.LinearSpring(
         bodies[i],
         bodies[(i + 2) % div],
-        { stiffness: 500, restLength: Math.sqrt((v - v3) ** 2 + (h - h3) ** 2), damping: 1 }
+        { stiffness: 5000.0 / div, restLength: Math.sqrt((v - v3) ** 2 + (h - h3) ** 2), damping: damping }
     );
     everyOther.push(spring);
     world.addSpring(spring);
@@ -87,7 +81,7 @@ for (let i = 0; i < div; i++) {
     spring = new p2.LinearSpring(
         bodies[i],
         bodies[(i + div / 2) % div],
-        { stiffness: 400, restLength: Math.sqrt((v - v4) ** 2 + (h - h4) ** 2), damping: 1 }
+        { stiffness: 4000.0 / div, restLength: Math.sqrt((v - v4) ** 2 + (h - h4) ** 2), damping: damping }
     );
     diagonal.push(spring);
     world.addSpring(spring);
@@ -95,7 +89,7 @@ for (let i = 0; i < div; i++) {
     spring = new p2.LinearSpring(
         bodies[i],
         core,
-        { stiffness: 400, restLength: Math.sqrt(v ** 2 + h ** 2), damping: 1 }
+        { stiffness: 4000.0 / div, restLength: Math.sqrt(v ** 2 + h ** 2), damping: damping }
     );
     radial.push(spring);
     world.addSpring(spring);
@@ -214,13 +208,22 @@ world.addSpring(spring);
 while (true) {
     world.step(clock.getDelta());
 
-    coreMesh.position.set(core.position[0], core.position[1], 0);
-    coreMesh.rotation.z = core.angle;
+    const shape = new THREE.Shape();
+    shape.moveTo(bodies[0].position[0], bodies[0].position[1]);
 
-    for (let i = 0; i < div; i++) {
-        particleMeshes[i].position.set(bodies[i].position[0], bodies[i].position[1], 0);
-        particleMeshes[i].rotation.z = bodies[i].angle;
+    for (let i = 1; i < div; i++) {
+        const p1 = new THREE.Vector2(bodies[i - 1].position[0], bodies[i - 1].position[1]);
+        const p2 = new THREE.Vector2(bodies[i].position[0], bodies[i].position[1]);
+        const l = p1.distanceTo(p2) / 4;
+        const np1 = new THREE.Vector2(bodies[(i + div - 2) % div].position[0], bodies[(i + div - 2) % div].position[1]);
+        const np2 = new THREE.Vector2(bodies[(i + 1) % div].position[0], bodies[(i + 1) % div].position[1]);
+        const cp1 = p1.clone().add(p1.clone().sub(np1).normalize().multiplyScalar(l));
+        const cp2 = p2.clone().add(p2.clone().sub(np2).normalize().multiplyScalar(l));
+        shape.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, p2.x, p2.y);
     }
+
+    shapeMesh.geometry.dispose();
+    shapeMesh.geometry = new THREE.ShapeGeometry(shape);
 
     boxMesh.position.set(box.position[0], box.position[1], 0);
     boxMesh.rotation.z = box.angle;
