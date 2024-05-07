@@ -27,11 +27,11 @@ var app = new p2.WebGLRenderer(function () {
         let r = (Math.PI * 2) / div * i;
         const v = Math.cos(r) * 0.3;
         const h = Math.sin(r) * 0.3;
-        
+
         r = (Math.PI * 2) / div * ((i + 1) % div);
         const v2 = Math.cos(r) * 0.3;
         const h2 = Math.sin(r) * 0.3;
-        
+
         r = (Math.PI * 2) / div * ((i + 2) % div);
         const v3 = Math.cos(r) * 0.3;
         const h3 = Math.sin(r) * 0.3;
@@ -63,7 +63,7 @@ var app = new p2.WebGLRenderer(function () {
         );
         diagonal.push(spring);
         world.addSpring(spring);
-        
+
         spring = new p2.LinearSpring(
             bodies[i],
             core,
@@ -72,6 +72,59 @@ var app = new p2.WebGLRenderer(function () {
         radial.push(spring);
         world.addSpring(spring);
     }
+
+    let pressed = false;
+    let mousePos;
+    let mouseOrigin;
+
+    document.addEventListener('mousemove', e => {
+        mousePos = { x: e.clientX, y: e.clientY };
+    });
+
+    document.addEventListener('keydown', e => {
+        if (e.key == "a" && !e.repeat) {
+            pressed = true;
+            mouseOrigin = mousePos;
+        }
+    });
+
+    document.addEventListener('keyup', e => {
+        if (e.key == "a") {
+            pressed = false;
+        }
+    });
+
+    world.on('postStep', function (event) {
+
+        let length = 0.0;
+
+        if (pressed) {
+            length = Math.sqrt((mouseOrigin.x - mousePos.x) ** 2 + (mouseOrigin.y - mousePos.y) ** 2) * 0.002;
+        }
+
+        for (let i = 0; i < div; i++) {
+            let r = (Math.PI * 2) / div * i;
+            const v = Math.cos(r) * (0.3 + length);
+            const h = Math.sin(r) * 0.3;
+
+            r = (Math.PI * 2) / div * ((i + 1) % div);
+            const v2 = Math.cos(r) * (0.3 + length);
+            const h2 = Math.sin(r) * 0.3;
+
+            r = (Math.PI * 2) / div * ((i + 2) % div);
+            const v3 = Math.cos(r) * (0.3 + length);
+            const h3 = Math.sin(r) * 0.3;
+
+            r = (Math.PI * 2) / div * ((i + div / 2) % div);
+            const v4 = Math.cos(r) * (0.3 + length);
+            const h4 = Math.sin(r) * 0.3;
+
+            arounds[i].restLength = Math.sqrt((v - v2) ** 2 + (h - h2) ** 2);
+            everyOther[i].restLength = Math.sqrt((v - v3) ** 2 + (h - h3) ** 2);
+            diagonal[i].restLength = Math.sqrt((v - v4) ** 2 + (h - h4) ** 2);
+            radial[i].restLength = Math.sqrt(v ** 2 + h ** 2);
+        }
+    });
 
     // var bodies = [];
     var N = 10,
