@@ -1,6 +1,13 @@
 import * as THREE from "three";
 
-const width = 1280, height = 720;
+let width = window.innerWidth, height = window.innerHeight;
+let aspect = width / height;
+if (aspect > 1) {
+    width = 360;
+    height = 640;
+    aspect = width / height;
+}
+
 const renderer = new THREE.WebGLRenderer();
 renderer.setSize(width, height);
 renderer.setPixelRatio(window.devicePixelRatio);
@@ -10,15 +17,11 @@ document.body.appendChild(renderer.domElement);
 const scene = new THREE.Scene();
 const clock = new THREE.Clock();
 
-const camera = new THREE.OrthographicCamera(-10, 10, 5.625, -5.625, 0, 1000);
+const camera = new THREE.OrthographicCamera(-5 * aspect, 5 * aspect, 5, -5, 0, 1000);
 camera.position.set(0, 0, 10);
 scene.add(camera);
 
 const world = new p2.World();
-
-const core = new p2.Body({ mass: 1, position: [0, 0] });
-core.addShape(new p2.Particle());
-world.addBody(core);
 
 const bodies = [];
 const arounds = [];
@@ -26,6 +29,10 @@ const everyOther = [];
 const diagonal = [];
 const radial = [];
 const div = 16;
+
+const core = new p2.Body({ mass: 1, position: [0, 0] });
+core.addShape(new p2.Particle());
+world.addBody(core);
 
 for (let i = 0; i < div; i++) {
     const r = (Math.PI * 2) / div * i;
@@ -99,20 +106,50 @@ let pressed = false;
 let mousePos;
 let mouseOrigin;
 
-window.addEventListener("mousemove", e => {
-    mousePos = { x: e.clientX, y: e.clientY };
-});
-
-window.addEventListener("mousedown", e => {
+document.addEventListener("mousemove", e => {
     if (e.button === 0) {
-        pressed = true;
-        mouseOrigin = mousePos;
+        mousePos = { x: e.clientX, y: e.clientY };
     }
 });
 
-window.addEventListener("mouseup", e => {
+document.addEventListener("mousedown", e => {
+    if (e.button === 0) {
+        pressed = true;
+        mouseOrigin = { x: e.clientX, y: e.clientY };
+        mousePos = mouseOrigin;
+    }
+});
+
+document.addEventListener("mouseup", e => {
     if (e.button === 0) {
         pressed = false;
+    }
+});
+
+let id;
+
+document.addEventListener("touchmove", e => {
+    for (let touch of e.changedTouches) {
+        if (touch.identifier === id) {
+            mousePos = { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
+        }
+    }
+});
+
+document.addEventListener("touchstart", e => {
+    pressed = true;
+    id = e.changedTouches[0].identifier;
+    mouseOrigin = { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
+    mousePos = mouseOrigin;
+    console.log(mouseOrigin);
+});
+
+document.addEventListener("touchend", e => {
+    for (let touch of e.changedTouches) {
+        if (touch.identifier === id) {
+            pressed = false;
+            id = NaN;
+        }
     }
 });
 
@@ -121,8 +158,11 @@ world.on("postStep", e => {
     let length = 0.0;
 
     if (pressed) {
-        length = Math.sqrt((mouseOrigin.x - mousePos.x) ** 2 + (mouseOrigin.y - mousePos.y) ** 2) * 0.002;
+        length = Math.sqrt((mouseOrigin.x - mousePos.x) ** 2 + (mouseOrigin.y - mousePos.y) ** 2) * 0.005;
     }
+
+    if (length > 1.5)
+        length = 1.5;
 
     for (let i = 0; i < div; i++) {
         let r = (Math.PI * 2) / div * i;
@@ -149,7 +189,7 @@ world.on("postStep", e => {
 });
 
 const box = new p2.Body({
-    mass: 1,
+    mass: 10,
     position: [0, 5],
     angularVelocity: 1
 });
