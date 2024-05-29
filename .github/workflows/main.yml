@@ -30,13 +30,9 @@ jobs:
         with:
           targetPlatform: WebGL
           buildsPath: Build
-      - uses: actions/upload-artifact@v4
-        with:
-          name: UnityWebGLBuild
-          path: Build
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: Build
+          path: Build/WebGL/WebGL
           
   deploy:
     needs: build
