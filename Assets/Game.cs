@@ -1,6 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using R3;
+using R3.Triggers;
+using Unity.VisualScripting;
 
 public class Game : MonoBehaviour
 {
@@ -24,6 +27,10 @@ public class Game : MonoBehaviour
         {
             float r = (Mathf.PI * 2) / div * i;
             bodies[i] = Instantiate(prefab, new Vector3(Mathf.Cos(r) * 0.3f, Mathf.Sin(r) * 0.3f), Quaternion.identity);
+            var body = bodies[i];
+            body.OnCollisionEnter2DAsObservable().Subscribe(collision => {
+                var joint = body.AddComponent<FixedJoint2D>();
+            });
         }
 
         for (int i = 0; i < div; i++)
