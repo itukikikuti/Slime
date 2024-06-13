@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.U2D;
 using R3;
 using R3.Triggers;
 using Unity.VisualScripting;
@@ -8,6 +9,7 @@ using Unity.VisualScripting;
 public class Game : MonoBehaviour
 {
     [SerializeField] private GameObject prefab = null;
+    [SerializeField] private SpriteShapeController spriteShape = null;
 
     private const int div = 16;
     private GameObject core = null;
@@ -19,6 +21,7 @@ public class Game : MonoBehaviour
     private bool pressed = false;
     private Vector2 mousePos = Vector2.zero;
     private Vector2 mouseOrigin = Vector2.zero;
+    private int connectCount = 0;
 
     private void Start()
     {
@@ -29,7 +32,11 @@ public class Game : MonoBehaviour
             bodies[i] = Instantiate(prefab, new Vector3(Mathf.Cos(r) * 0.3f, Mathf.Sin(r) * 0.3f), Quaternion.identity);
             var body = bodies[i];
             body.OnCollisionEnter2DAsObservable().Subscribe(collision => {
-                var joint = body.AddComponent<FixedJoint2D>();
+                if (connectCount < 3)
+                {
+                    connectCount++;
+                    var joint = body.AddComponent<FixedJoint2D>();
+                }
             });
         }
 
@@ -82,25 +89,28 @@ public class Game : MonoBehaviour
         for (int i = 0; i < div; i++)
         {
             float r = (Mathf.PI * 2f) / div * i;
-            float v = Mathf.Cos(r) * (0.3f + length);
-            float h = Mathf.Sin(r) * 0.3f;
+            float v = Mathf.Cos(r) * 0.3f;
+            float h = Mathf.Sin(r) * (0.3f + length);
 
             r = (Mathf.PI * 2f) / div * ((i + 1) % div);
-            float v2 = Mathf.Cos(r) * (0.3f + length);
-            float h2 = Mathf.Sin(r) * 0.3f;
+            float v2 = Mathf.Cos(r) * 0.3f;
+            float h2 = Mathf.Sin(r) * (0.3f + length);
 
             r = (Mathf.PI * 2f) / div * ((i + 2) % div);
-            float v3 = Mathf.Cos(r) * (0.3f + length);
-            float h3 = Mathf.Sin(r) * 0.3f;
+            float v3 = Mathf.Cos(r) * 0.3f;
+            float h3 = Mathf.Sin(r) * (0.3f + length);
 
             r = (Mathf.PI * 2f) / div * ((i + div / 2) % div);
-            float v4 = Mathf.Cos(r) * (0.3f + length);
-            float h4 = Mathf.Sin(r) * 0.3f;
+            float v4 = Mathf.Cos(r) * 0.3f;
+            float h4 = Mathf.Sin(r) * (0.3f + length);
 
             arounds[i].distance = Mathf.Sqrt(Mathf.Pow(v - v2, 2) + Mathf.Pow(h - h2, 2));
             arounds2[i].distance = Mathf.Sqrt(Mathf.Pow(v - v3, 2) + Mathf.Pow(h - h3, 2));
             diagonal[i].distance = Mathf.Sqrt(Mathf.Pow(v - v4, 2) + Mathf.Pow(h - h4, 2));
             radial[i].distance = Mathf.Sqrt(Mathf.Pow(v, 2) + Mathf.Pow(h, 2));
+
+            spriteShape.spline.SetPosition(i, bodies[i].transform.position);
+            spriteShape.spline.SetHeight(i, 0.1f);
         }
     }
 }
