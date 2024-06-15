@@ -108,9 +108,29 @@ public class Game : MonoBehaviour
             arounds2[i].distance = Mathf.Sqrt(Mathf.Pow(v - v3, 2) + Mathf.Pow(h - h3, 2));
             diagonal[i].distance = Mathf.Sqrt(Mathf.Pow(v - v4, 2) + Mathf.Pow(h - h4, 2));
             radial[i].distance = Mathf.Sqrt(Mathf.Pow(v, 2) + Mathf.Pow(h, 2));
+        }
 
-            spriteShape.spline.SetPosition(i, bodies[i].transform.position);
-            spriteShape.spline.SetHeight(i, 0.1f);
+        for (int i = 0; i < div; i++)
+        {
+            Vector3 p = bodies[i].transform.position;
+            Vector3 p1 = bodies[(i + div - 1) % div].transform.position;
+            Vector3 p2 = bodies[(i + 1) % div].transform.position;
+            float l1 = Vector3.Distance(p, p1) / 4f;
+            float l2 = Vector3.Distance(p, p2) / 4f;
+            Vector3 cp1 = (p1 - p).normalized * l1;
+            Vector3 cp2 = (p2 - p).normalized * l2;
+            Vector3 cp3 = (cp1 - cp2).normalized;
+            cp3 = new Vector3(-cp3.y, cp3.x, 0f);
+            cp1 = Vector3.ProjectOnPlane(cp1, cp3);
+            cp2 = Vector3.ProjectOnPlane(cp2, cp3);
+
+            Debug.DrawLine(p, p + cp1, Color.red);
+            Debug.DrawLine(p, p + cp2, Color.red);
+            spriteShape.spline.SetPosition(i, p);
+            spriteShape.spline.SetLeftTangent(i, cp1);
+            spriteShape.spline.SetRightTangent(i, cp2);
+            spriteShape.spline.SetTangentMode(i, ShapeTangentMode.Continuous);
+            spriteShape.spline.SetHeight(i, 0.2f);
         }
     }
 }
