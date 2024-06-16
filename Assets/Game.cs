@@ -130,7 +130,7 @@ public class Game : MonoBehaviour
             spriteShape.spline.SetLeftTangent(i, cp1);
             spriteShape.spline.SetRightTangent(i, cp2);
             spriteShape.spline.SetTangentMode(i, ShapeTangentMode.Continuous);
-            spriteShape.spline.SetHeight(i, 0.2f);
+            spriteShape.spline.SetHeight(i, 0.1f);
         }
     }
 }
